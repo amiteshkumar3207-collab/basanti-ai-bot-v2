@@ -69,14 +69,38 @@ def system_prompt(mood: str) -> str:
     return base
 
 def ask_ai(user_id, text, mood):
-    messages = [{"role": "system", "content": system_prompt(mood)}]
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                "You are Basanti AI. "
+                "Never repeat the user's message. "
+                "Never say 'Tumne bola' or 'You said'. "
+                "Reply naturally like a human chat."
+            )
+        }
+    ]
 
+    # long-term memory
     facts = get_long(user_id)
     if facts:
-        messages.append({"role": "system", "content": "Known facts:\n" + "\n".join(facts)})
+        messages.append({
+            "role": "system",
+            "content": "User info:\n" + "\n".join(facts)
+        })
 
-    messages.extend(get_short(user_id))
-    messages.append({"role": "user", "content": text})
+    # short-term memory (clean)
+    for m in get_short(user_id):
+        if m["role"] == "user":
+            messages.append({"role": "user", "content": m["content"]})
+        elif m["role"] == "assistant":
+            messages.append({"role": "assistant", "content": m["content"]})
+
+    # CURRENT USER MESSAGE (NO PREFIX)
+    messages.append({
+        "role": "user",
+        "content": text
+    })
 
     r = requests.post(
         OPENROUTER_URL,
@@ -84,12 +108,15 @@ def ask_ai(user_id, text, mood):
             "Authorization": f"Bearer {OPENROUTER_API_KEY}",
             "Content-Type": "application/json",
         },
-        json={"model": MODEL, "messages": messages},
+        json={
+            "model": MODEL,
+            "messages": messages,
+            "temperature": 0.7
+        },
         timeout=60
     )
     r.raise_for_status()
     return r.json()["choices"][0]["message"]["content"]
-
 # ================== COMMANDS ==================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
