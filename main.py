@@ -22,8 +22,8 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply = "Hello 😊 Kya haal hai?"
     elif "kaisi ho" in text or "kaise ho" in text:
         reply = "Main bilkul theek hoon 🌸 Tum batao?"
-    elif "name" in text:
-        reply = "Mera naam Basanti hai 🤖🌸"
+    elif "name" in text or "naam" in text:
+    reply = "Mera naam Basanti hai 🤖🌸"
     else:
         reply = "Main sun rahi hoon 😊 Bolo?"
 
