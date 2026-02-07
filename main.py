@@ -1,35 +1,30 @@
-import requests
+from telegram import Update
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    MessageHandler,
+    ContextTypes,
+    filters
+)
 import os
 
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-def ask_ai(user_text):
-    try:
-        headers = {
-            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://railway.app",
-            "X-Title": "Basanti-AI-Bot"
-        }
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("✅ Basanti alive hai. Hello 👋")
 
-        payload = {
-            "model": "qwen/qwen3-next-80b-a3b-instruct:free",
-            "messages": [
-                {"role": "system", "content": "You are Basanti, a friendly Hindi-English AI assistant."},
-                {"role": "user", "content": user_text}
-            ]
-        }
+async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
+    await update.message.reply_text(f"🧠 Tumne bola: {text}")
 
-        res = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers=headers,
-            json=payload,
-            timeout=20
-        )
+def main():
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-        data = res.json()
-        return data["choices"][0]["message"]["content"]
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
 
-    except Exception as e:
-        print("AI ERROR:", e)
-        return "⚠️ Thoda issue aaya hai, dobara try karo."
+    print("🤖 BOT STARTED")
+    app.run_polling()
+
+if __name__ == "__main__":
+    main()
