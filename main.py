@@ -22,6 +22,7 @@ OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
  MODEL_NAME = "openrouter/auto"  # free-friendly & stable
 
 # ========== AI ENGINE ==========
+
 def ask_ai(system_prompt, messages):
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
@@ -50,12 +51,6 @@ def ask_ai(system_prompt, messages):
     data = response.json()
 
     return data["choices"][0]["message"]["content"]
-
-    response = requests.post(OPENROUTER_URL, headers=headers, json=payload, timeout=30)
-    data = response.json()
-
-    return data["choices"][0]["message"]["content"]
-
 
 # ========== START COMMAND ==========
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
