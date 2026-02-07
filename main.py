@@ -26,6 +26,8 @@ def ask_ai(system_prompt, messages):
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
         "Content-Type": "application/json",
+        "HTTP-Referer": "https://railway.app",
+        "X-Title": "Basanti Telegram Bot"
     }
 
     payload = {
@@ -33,8 +35,21 @@ def ask_ai(system_prompt, messages):
         "messages": [
             {"role": "system", "content": system_prompt},
             *messages
-        ]
+        ],
+        "temperature": 0.7
     }
+
+    response = requests.post(
+        OPENROUTER_URL,
+        headers=headers,
+        json=payload,
+        timeout=30
+    )
+
+    response.raise_for_status()
+    data = response.json()
+
+    return data["choices"][0]["message"]["content"]
 
     response = requests.post(OPENROUTER_URL, headers=headers, json=payload, timeout=30)
     data = response.json()
