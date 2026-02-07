@@ -21,6 +21,9 @@ MODEL_NAME = "openrouter/auto"
 
 # ========= AI =========
 def ask_ai(system_prompt, messages):
+    if not OPENROUTER_API_KEY:
+        raise Exception("OPENROUTER_API_KEY is missing")
+
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
         "Content-Type": "application/json",
@@ -29,7 +32,7 @@ def ask_ai(system_prompt, messages):
     }
 
     payload = {
-        "model": MODEL_NAME,
+        "model": "openai/gpt-3.5-turbo",  # 🔥 TEMP SAFE MODEL
         "messages": [
             {"role": "system", "content": system_prompt},
             *messages
@@ -44,8 +47,12 @@ def ask_ai(system_prompt, messages):
         timeout=30
     )
 
+    print("STATUS:", response.status_code)
+    print("RESPONSE:", response.text)
+
     response.raise_for_status()
     data = response.json()
+
     return data["choices"][0]["message"]["content"]
 
 # ========= START =========
