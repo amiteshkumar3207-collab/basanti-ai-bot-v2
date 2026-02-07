@@ -19,7 +19,7 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
- MODEL_NAME = "openrouter/auto"  # free-friendly & stable
+MODEL_NAME = "openrouter/auto"  # free-friendly & stable
 
 # ========== AI ENGINE ==========
 
