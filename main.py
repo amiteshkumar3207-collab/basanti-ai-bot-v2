@@ -1,5 +1,5 @@
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
-import os
+import os   # ✅ YE LINE MISSING THI
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
@@ -14,7 +14,7 @@ def main():
     app = (
         Application.builder()
         .token(BOT_TOKEN)
-        .drop_pending_updates(True)  # 🔥 YE LINE SABSE IMPORTANT HAI
+        .drop_pending_updates(True)  # 🔥 repeat reply fix
         .build()
     )
 
