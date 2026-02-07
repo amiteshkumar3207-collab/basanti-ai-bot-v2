@@ -16,9 +16,18 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        f"Tumne likha: {update.message.text}"
-    )
+    text = update.message.text.lower()
+
+    if "hello" in text or "hi" in text:
+        reply = "Hello 😊 Kya haal hai?"
+    elif "kaisi ho" in text or "kaise ho" in text:
+        reply = "Main bilkul theek hoon 🌸 Tum batao?"
+    elif "name" in text:
+        reply = "Mera naam Basanti hai 🤖🌸"
+    else:
+        reply = "Main sun rahi hoon 😊 Bolo?"
+
+    await update.message.reply_text(reply)
 
 def main():
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
