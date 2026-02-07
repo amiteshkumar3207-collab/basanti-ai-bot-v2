@@ -5,10 +5,12 @@ import requests
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
+BOT_USERNAME = "@BasantiBot"   # 👈 yahan apna exact bot username daalo
+
 SYSTEM_PROMPT = """
 You are Basanti, a good-natured, calm, and helpful AI.
 You speak Hindi, English, and Hinglish naturally.
-Answer clearly and politely.
+Reply briefly, clearly, and politely.
 """
 
 def ask_ai(user_text):
@@ -28,16 +30,33 @@ def ask_ai(user_text):
     return response.json()["choices"][0]["message"]["content"]
 
 async def start(update, context):
-    await update.message.reply_text("🌼 Basanti ready hoon. Kuch bhi poochho 🙂")
+    await update.message.reply_text("🌼 Basanti ready hoon. Group me mujhe tag karke poochho 🙂")
 
-async def reply(update, context):
-    user_text = update.message.text
-    answer = ask_ai(user_text)
-    await update.message.reply_text(answer)
+async def group_reply(update, context):
+    message = update.message
+    text = message.text
+
+    # ❌ Agar text hi nahi hai
+    if not text:
+        return
+
+    # ❌ Agar bot mention nahi hai
+    if BOT_USERNAME.lower() not in text.lower():
+        return
+
+    # Mention hata ke clean question nikalo
+    clean_text = text.replace(BOT_USERNAME, "").strip()
+
+    if not clean_text:
+        await message.reply_text("🌼 Haan? Aap kya poochna chahte ho 🙂")
+        return
+
+    answer = ask_ai(clean_text)
+    await message.reply_text(answer)
 
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, reply))
+app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, group_reply))
 
 app.run_polling()
