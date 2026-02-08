@@ -3,13 +3,18 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, ContextTypes, filters
 from openai import OpenAI
 
-# OpenRouter client
+# Auto-detect OpenRouter / OpenAI key
+API_KEY = (
+    os.getenv("OPENAI_API_KEY")
+    or os.getenv("OPENROUTER_API_KEY")
+)
+
 client = OpenAI(
-    api_key=os.getenv("OPENROUTER_API_KEY"),
+    api_key=API_KEY,
     base_url="https://openrouter.ai/api/v1"
 )
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
 
 async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_text = update.message.text
@@ -19,7 +24,7 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
         messages=[
             {
                 "role": "system",
-                "content": "Tum ek insaano jaisa sochne wala AI ho. Hindi aur English mix me natural, friendly reply do."
+                "content": "Tum ek real insaan jaise sochne wala AI ho. Friendly Hindi-English mix me natural reply do."
             },
             {
                 "role": "user",
