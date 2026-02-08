@@ -1,6 +1,7 @@
 import os
 import asyncio
 import requests
+from collections import deque
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
@@ -18,6 +19,8 @@ MODEL = "openrouter/auto"
 # -------- In-memory state ----------
 LAST_MESSAGE = {}
 LAST_CONTEXT = {}
+# Short context per user (last 5 turns)
+AI_CONTEXT = {}  # user_id -> deque(maxlen=5)
 
 # -------- START ----------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -25,10 +28,32 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Hii 😊 Main Basanti hoon 🌸\nBaat shuru karo 💬"
     )
 
-# -------- AI ENGINE ----------
-def ask_ai(user_text: str) -> str:
+# -------- AI ENGINE (with context) ----------
+def ask_ai_with_context(user_id: int, user_text: str) -> str:
     if not OPENROUTER_API_KEY:
         return "Abhi AI available nahi hai 😔"
+
+    # init context deque
+    if user_id not in AI_CONTEXT:
+        AI_CONTEXT[user_id] = deque(maxlen=5)
+
+    # build messages: system + recent context + current user
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                "Tum Basanti ho. Hindi/Hinglish me short, friendly replies do. "
+                "WhatsApp jaisa tone rakho. Long paragraphs mat likho."
+            ),
+        }
+    ]
+
+    # add recent context
+    for m in AI_CONTEXT[user_id]:
+        messages.append(m)
+
+    # add current user message
+    messages.append({"role": "user", "content": user_text})
 
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
@@ -39,19 +64,22 @@ def ask_ai(user_text: str) -> str:
 
     payload = {
         "model": MODEL,
-        "messages": [
-            {"role": "system", "content": "Tum Basanti ho. Hindi/Hinglish me short, friendly replies do. Long paragraphs mat likho."},
-            {"role": "user", "content": user_text}
-        ],
+        "messages": messages,
         "temperature": 0.6,
-        "max_tokens": 120
+        "max_tokens": 140
     }
 
     try:
         r = requests.post(OPENROUTER_URL, headers=headers, json=payload, timeout=20)
         r.raise_for_status()
         data = r.json()
-        return data["choices"][0]["message"]["content"]
+        reply = data["choices"][0]["message"]["content"]
+
+        # save to context (user + assistant)
+        AI_CONTEXT[user_id].append({"role": "user", "content": user_text})
+        AI_CONTEXT[user_id].append({"role": "assistant", "content": reply})
+
+        return reply
     except Exception:
         return "Samajhne me thoda issue aa gaya 😅"
 
@@ -67,6 +95,7 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
         bot_username = context.bot.username.lower()
         if f"@{bot_username}" not in text_l:
             return
+        # remove mention
         text_l = text_l.replace(f"@{bot_username}", "").strip()
         text = text.replace(f"@{context.bot.username}", "").strip()
 
@@ -82,7 +111,7 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_chat_action(update.effective_chat.id, "typing")
     await asyncio.sleep(0.8)
 
-    # ---- local rules first (fast) ----
+    # ---- local rules first ----
     if text_l in ["hi", "hii", "hello"]:
         reply = "Hii 😊"
         LAST_CONTEXT[user_id] = "greet"
@@ -100,8 +129,8 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
         LAST_CONTEXT[user_id] = "activity"
 
     else:
-        # ---- AI fallback (controlled) ----
-        reply = ask_ai(text)
+        # ---- AI with short context ----
+        reply = ask_ai_with_context(user_id, text)
 
     await update.message.reply_text(reply)
 
@@ -110,7 +139,7 @@ def main():
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, chat))
-    print("✅ Basanti STEP 7 running (AI enabled)")
+    print("✅ Basanti STEP 8 running (AI memory)")
     app.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
