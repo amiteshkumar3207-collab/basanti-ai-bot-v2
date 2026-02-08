@@ -38,4 +38,5 @@ def main():
     print("✅ Basanti STEP 0 running")
     app.run_polling(drop_pending_updates=True)
 
-if
+if __name__ == "__main__":
+    main()
