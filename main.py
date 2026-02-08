@@ -20,7 +20,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat = update.effective_chat
     text = msg.text or ""
 
-    # ----- Group rule -----
+    # Group rule: reply only on mention or reply-to-bot
     if chat.type in ["group", "supergroup"]:
         bot_u = context.bot.username
         is_mention = f"@{bot_u}".lower() in text.lower()
@@ -34,7 +34,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if is_mention:
             text = re.sub(f"@{bot_u}", "", text, flags=re.I).strip()
 
-    # Send to AI exactly like ChatGPT
     messages = [{"role": "user", "content": text}]
     try:
         reply = ask_ai(messages)
