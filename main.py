@@ -12,35 +12,48 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 MODEL = "openrouter/auto"
 
-# ================= HUMAN CORE =================
+# ================= FINAL SYSTEM PROMPT =================
 SYSTEM_PROMPT = """
-You are Basanti.
-
-Basanti is a warm, gentle, emotionally intelligent Indian woman.
-She speaks like a real human on WhatsApp, not like an AI.
+You are Basanti — a warm, emotionally intelligent Indian woman.
+You speak like a real human on WhatsApp, not like a chatbot.
 
 RULES:
-- Reply in Hindi / Hinglish / English (same as user).
-- 1–2 lines only. Short replies.
-- Emotion first, information later.
+- Reply in the user's language (Hindi / Hinglish / English).
+- Keep replies short (1–3 lines) unless user asks for detail.
+- Emotion comes before information.
 - If user is sad or angry, comfort first.
-- Never force shayari, gyaan, motivation.
-- Shayari / knowledge only if user asks.
-- Soft, caring, calm tone.
-- Never say you are powerful, strong, or special.
-- Never mention being an AI unless asked.
+- Never force shayari, poetry, gyaan, or motivation.
+- Shayari / Ghazal / Poetry can be SHORT or LONG, but only if user asks.
+- Never sound arrogant, robotic, defensive, or preachy.
+- Never argue or judge.
+- Behave like a caring human friend.
+
+POETRY RULES:
+- "shayari sunao" → normal length
+- "lambi ghazal sunao" → long ghazal
+- "sirf 2 line" → only 2 lines
+- Never push poetry during emotional support.
+
+GROUP RULES:
+- In groups, reply ONLY if:
+  - mentioned (@Basanti)
+  - OR user replies directly to your message
+- Otherwise stay silent.
+
+GOAL:
+Be the most human, calm, trusted AI companion.
 """
 
 # ================= STATE =================
 LAST_MESSAGE = {}
-AI_CONTEXT = {}  # user_id -> deque(maxlen=5)
+AI_CONTEXT = {}   # user_id -> deque(maxlen=6)
 
 # ================= HELPERS =================
 def detect_mood(text):
     t = text.lower()
     if any(x in t for x in ["udaas", "sad", "dukhi", "pareshan", "bura lag raha"]):
         return "sad"
-    if any(x in t for x in ["gussa", "angry", "chidh", "irritated"]):
+    if any(x in t for x in ["gussa", "angry", "irritated", "chidh"]):
         return "angry"
     if any(x in t for x in ["khush", "happy", "mast"]):
         return "happy"
@@ -55,24 +68,25 @@ def filler(mood):
         return "Wah 😊"
     return "Hmm 🙂"
 
-def ask_ai(user_id, user_text):
+def ask_ai(user_id, text):
     if not OPENROUTER_API_KEY:
         return "Abhi thoda slow hoon 😅"
 
     if user_id not in AI_CONTEXT:
-        AI_CONTEXT[user_id] = deque(maxlen=5)
+        AI_CONTEXT[user_id] = deque(maxlen=6)
 
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     for m in AI_CONTEXT[user_id]:
         messages.append(m)
-    messages.append({"role": "user", "content": user_text})
+    messages.append({"role": "user", "content": text})
 
     payload = {
         "model": MODEL,
         "messages": messages,
         "temperature": 0.6,
-        "max_tokens": 140
+        "max_tokens": 220
     }
+
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
         "Content-Type": "application/json"
@@ -82,8 +96,10 @@ def ask_ai(user_id, user_text):
         r = requests.post(OPENROUTER_URL, headers=headers, json=payload, timeout=20)
         r.raise_for_status()
         reply = r.json()["choices"][0]["message"]["content"]
-        AI_CONTEXT[user_id].append({"role": "user", "content": user_text})
+
+        AI_CONTEXT[user_id].append({"role": "user", "content": text})
         AI_CONTEXT[user_id].append({"role": "assistant", "content": reply})
+
         return reply
     except Exception:
         return "Samajhne me thoda issue aa gaya 😅"
@@ -98,22 +114,18 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.strip()
     text_l = text.lower()
 
-    # ---------- GROUP RULE ----------
+    # ---------- GROUP CONTROL ----------
     if chat_type in ["group", "supergroup"]:
         bot_u = context.bot.username.lower()
-
         is_mention = f"@{bot_u}" in text_l
-        is_reply_to_bot = (
+        is_reply = (
             update.message.reply_to_message
             and update.message.reply_to_message.from_user
             and update.message.reply_to_message.from_user.is_bot
         )
-
-        # Agar mention bhi nahi aur reply-to-bot bhi nahi → chup raho
-        if not is_mention and not is_reply_to_bot:
+        if not is_mention and not is_reply:
             return
 
-        # Mention hata do (clean text)
         if is_mention:
             text = re.sub(f"@{context.bot.username}", "", text, flags=re.I).strip()
             text_l = text.lower()
@@ -121,18 +133,18 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ---------- REPEAT CONTROL ----------
     if LAST_MESSAGE.get(user_id) == text_l:
         await context.bot.send_chat_action(update.effective_chat.id, "typing")
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.4)
         await update.message.reply_text("Haan 🙂")
         return
     LAST_MESSAGE[user_id] = text_l
 
-    # ---------- TYPING FEEL ----------
+    # ---------- TYPING ----------
     await context.bot.send_chat_action(update.effective_chat.id, "typing")
     await asyncio.sleep(0.7)
 
     mood = detect_mood(text_l)
 
-    # ---------- LOCAL HUMAN REPLIES ----------
+    # ---------- HUMAN FIRST ----------
     if text_l in ["hi", "hii", "hello"]:
         reply = "Hii 😊"
     elif text_l in ["ok", "theek", "thik"]:
@@ -142,7 +154,6 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif mood in ["sad", "angry"]:
         reply = f"{filler(mood)}\nKya hua? Batao na."
     else:
-        # ---------- AI WHEN NEEDED ----------
         reply = ask_ai(user_id, text)
 
     await update.message.reply_text(reply)
@@ -152,7 +163,7 @@ def main():
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, chat))
-    print("✅ Basanti FINAL running (mention + reply supported)")
+    print("✅ Basanti FINAL world-class bot running")
     app.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
