@@ -1,4 +1,5 @@
 import os
+import re
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
@@ -12,38 +13,41 @@ from ai_engine import ask_ai
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "नमस्ते 🙂\nमैं Basanti हूँ 🌸"
-    )
+    await update.message.reply_text("Hii 🙂 Main Basanti hoon 🌸")
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message = update.message
+    msg = update.message
     chat = update.effective_chat
+    text = msg.text or ""
 
-    text = message.text
-
-    # Group rule
+    # ----- Group rule -----
     if chat.type in ["group", "supergroup"]:
-        bot_username = context.bot.username
-        if f"@{bot_username}" not in text and not message.reply_to_message:
+        bot_u = context.bot.username
+        is_mention = f"@{bot_u}".lower() in text.lower()
+        is_reply = (
+            msg.reply_to_message
+            and msg.reply_to_message.from_user
+            and msg.reply_to_message.from_user.is_bot
+        )
+        if not is_mention and not is_reply:
             return
-        text = text.replace(f"@{bot_username}", "").strip()
+        if is_mention:
+            text = re.sub(f"@{bot_u}", "", text, flags=re.I).strip()
 
-    user_messages = [
-        {"role": "user", "content": text}
-    ]
-
+    # Send to AI exactly like ChatGPT
+    messages = [{"role": "user", "content": text}]
     try:
-        reply = ask_ai(user_messages)
+        reply = ask_ai(messages)
     except Exception:
-        reply = "थोड़ा सा रुकना पड़ेगा 🙂"
+        reply = "Abhi thoda sa issue aa gaya 🙂 thodi der baad try karo."
 
-    await message.reply_text(reply)
+    await msg.reply_text(reply)
 
 def main():
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    print("✅ Basanti running (ChatGPT-style)")
     app.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
