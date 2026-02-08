@@ -1,4 +1,5 @@
 import os
+import asyncio
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
@@ -8,50 +9,51 @@ from telegram.ext import (
     filters,
 )
 
-from memory import set_name, get_name
-from ai_engine import ask_ai
-
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 
+# -------- MEMORY (temporary, in-ram) ----------
+LAST_MESSAGE = {}
+
+# -------- START ----------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "Hii 😊 Main Basanti hoon 🌸\nTumhara naam kya hai?"
+        "Namaste 🙂\nMain Basanti hoon 🌸\nBot bilkul theek chal raha hai ✅"
     )
 
-async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text.lower().strip()
+# -------- CHAT ----------
+async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
+    text = update.message.text.strip().lower()
 
-    # Simple rules first
-    if text in ["hi", "hii", "hello"]:
-        reply_text = "Hii 😊"
+    # 🔁 repeat message check
+    if LAST_MESSAGE.get(user_id) == text:
+        return
 
-    elif "mera naam" in text:
-        name = text.replace("mera naam", "").strip().title()
-        if name:
-            set_name(user_id, name)
-            reply_text = f"Achha {name} 😊 Yaad rakhungi."
-        else:
-            reply_text = "Naam theek se batao 🙂"
+    LAST_MESSAGE[user_id] = text
 
-    elif "kaisi" in text or "kaise" in text:
-        name = get_name(user_id)
-        reply_text = f"Theek hoon 🌸 {name}, tum?" if name else "Theek hoon 🌸 tum?"
+    # ⏳ typing delay (WhatsApp feel)
+    await asyncio.sleep(0.8)
 
+    # 💬 simple replies
+    if "hello" in text or "hi" in text:
+        reply = "Hii 😊"
     elif "naam" in text or "name" in text:
-        reply_text = "Basanti 😄"
-
+        reply = "Basanti 😄"
+    elif "kaisi ho" in text or "kaise ho" in text:
+        reply = "Main theek hoon 🌸 Tum batao?"
+    elif "kya kar" in text:
+        reply = "Tumse baat kar rahi hoon 😊"
     else:
-        # AI fallback
-        reply_text = ask_ai(update.message.text)
+        reply = "Sun rahi hoon 😊"
 
-    await update.message.reply_text(reply_text)
+    await update.message.reply_text(reply)
 
+# -------- MAIN ----------
 def main():
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT, reply))
-    print("✅ Basanti STEP 3 running (AI enabled)")
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, chat))
+    print("✅ Basanti STEP 4 running...")
     app.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
