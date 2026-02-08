@@ -1,23 +1,21 @@
-
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
 import os
-from ai_engine import ask_ai   # ← THIS MUST WORK NOW
+from ai_engine import ask_ai
 
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+TOKEN = os.getenv("TELEGRAM_TOKEN")
+
+if not TOKEN:
+    print("TELEGRAM_TOKEN missing")
+    exit(1)
 
 async def start(update, context):
-    await update.message.reply_text("Basanti AI Bot online 🤖")
+    await update.message.reply_text("Basanti AI Bot alive 🤖")
 
 async def chat(update, context):
-    text = update.message.text
-    await update.message.chat.send_action("typing")
-    try:
-        reply = ask_ai(text)
-        await update.message.reply_text(reply)
-    except Exception as e:
-        await update.message.reply_text("Error aaya, baad me try karo.")
+    reply = ask_ai(update.message.text)
+    await update.message.reply_text(reply)
 
-app = Application.builder().token(TELEGRAM_TOKEN).build()
+app = Application.builder().token(TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, chat))
