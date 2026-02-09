@@ -11,27 +11,31 @@ from telegram.ext import (
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 OWNER_ID = 1085953633  # tumhari Telegram user ID
 
-# ---------- AI LOGIC ----------
+# ---------- LADY AI LOGIC ----------
 def ai_reply_logic(text: str):
     text = text.lower()
 
     if "hi" in text or "hello" in text:
-        return "Hello 👋 Kaise ho?"
+        return "Hii 😊 main yahin hoon"
     if "kaise ho" in text:
-        return "Main bilkul theek hoon 😊 Tum batao?"
+        return "Main bilkul theek hoon 😊 aap kaise ho?"
     if "tum kaun ho" in text:
-        return "Main ek smart AI Telegram bot hoon 🤖"
+        return "Main ek lady AI Telegram bot hoon 👩‍💻"
+    if "kya kar rahi ho" in text:
+        return "Bas aap se baat kar rahi hoon 😊"
+    if "name" in text or "naam" in text:
+        return "Aap mujhe *Basanti* keh sakte ho 💕"
     if "help" in text:
-        return "Commands dekhne ke liye /help likho 🙂"
+        return "Aap /help likh kar commands dekh sakte ho 🙂"
     if "thank" in text or "thanks" in text:
-        return "Welcome 😊"
+        return "Welcome 😊 khushi hui madad karke"
 
-    return "Samajh gaya 👍 thoda aur batao 🙂"
+    return "Achha 😊 thoda aur batao na"
 
 # ---------- HELP ----------
 async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = (
-        "🤖 *Bot Commands*\n\n"
+        "👩‍🦰 *Basanti Bot Commands*\n\n"
         "/help - Help message\n\n"
         "*Group Admin Only:*\n"
         "/rules - Group rules\n"
@@ -55,26 +59,26 @@ async def is_group_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ---------- GROUP ADMIN COMMANDS ----------
 async def rules(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_group_admin(update, context):
-        return await update.message.reply_text("❌ Sirf group admin ke liye.")
-    await update.message.reply_text("📜 Group Rules:\n1. Respect\n2. No spam")
+        return
+    await update.message.reply_text("📜 Group Rules:\n1. Respect everyone\n2. No spam")
 
 async def boton(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_group_admin(update, context):
         return
     context.chat_data["bot_enabled"] = True
-    await update.message.reply_text("✅ Bot ON")
+    await update.message.reply_text("😊 Theek hai, bot ON kar diya")
 
 async def botoff(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_group_admin(update, context):
         return
     context.chat_data["bot_enabled"] = False
-    await update.message.reply_text("⛔ Bot OFF")
+    await update.message.reply_text("🙈 Bot OFF kar diya")
 
 async def mute(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_group_admin(update, context):
         return
     if not update.message.reply_to_message:
-        return await update.message.reply_text("⚠️ Kisi user ke message par reply karke /mute likho.")
+        return await update.message.reply_text("Reply karke /mute likho 🙂")
     user_id = update.message.reply_to_message.from_user.id
     await context.bot.restrict_chat_member(
         chat_id=update.effective_chat.id,
@@ -82,22 +86,22 @@ async def mute(update: Update, context: ContextTypes.DEFAULT_TYPE):
         permissions=ChatPermissions(can_send_messages=False),
         until_date=300,
     )
-    await update.message.reply_text("🔇 User 5 minute ke liye mute ho gaya.")
+    await update.message.reply_text("🤫 Thodi der ke liye mute kar diya")
 
 # ---------- OWNER ----------
 async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != OWNER_ID:
         return
-    await update.message.reply_text("📢 Broadcast feature ready (future upgrade).")
+    await update.message.reply_text("📢 Owner message delivered 😊")
 
 # ---------- WELCOME ----------
 async def welcome(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for member in update.message.new_chat_members:
         await update.message.reply_text(
-            f"👋 Welcome {member.first_name}!\nRules follow karo 😊"
+            f"👋 Welcome {member.first_name} 😊\nGroup rules follow karna"
         )
 
-# ---------- AI AUTO REPLY ----------
+# ---------- AUTO REPLY ----------
 async def auto_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.type in ["group", "supergroup"]:
         if context.chat_data.get("bot_enabled") is False:
