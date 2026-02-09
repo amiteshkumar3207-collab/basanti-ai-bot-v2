@@ -9,7 +9,24 @@ from telegram.ext import (
 )
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-OWNER_ID = 1085953633
+OWNER_ID = 1085953633  # tumhari Telegram user ID
+
+# ---------- AI LOGIC ----------
+def ai_reply_logic(text: str):
+    text = text.lower()
+
+    if "hi" in text or "hello" in text:
+        return "Hello 👋 Kaise ho?"
+    if "kaise ho" in text:
+        return "Main bilkul theek hoon 😊 Tum batao?"
+    if "tum kaun ho" in text:
+        return "Main ek smart AI Telegram bot hoon 🤖"
+    if "help" in text:
+        return "Commands dekhne ke liye /help likho 🙂"
+    if "thank" in text or "thanks" in text:
+        return "Welcome 😊"
+
+    return "Samajh gaya 👍 thoda aur batao 🙂"
 
 # ---------- HELP ----------
 async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -20,13 +37,13 @@ async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/rules - Group rules\n"
         "/boton - Bot ON\n"
         "/botoff - Bot OFF\n"
-        "/mute <reply> - 5 min mute\n\n"
+        "/mute (reply) - 5 min mute\n\n"
         "*Owner Only:*\n"
         "/broadcast <msg>\n"
     )
     await update.message.reply_text(text, parse_mode="Markdown")
 
-# ---------- CHECK ADMIN ----------
+# ---------- CHECK GROUP ADMIN ----------
 async def is_group_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat = update.effective_chat
     user = update.effective_user
@@ -43,19 +60,19 @@ async def rules(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def boton(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_group_admin(update, context):
-        return await update.message.reply_text("❌ Sirf group admin.")
+        return
     context.chat_data["bot_enabled"] = True
     await update.message.reply_text("✅ Bot ON")
 
 async def botoff(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_group_admin(update, context):
-        return await update.message.reply_text("❌ Sirf group admin.")
+        return
     context.chat_data["bot_enabled"] = False
     await update.message.reply_text("⛔ Bot OFF")
 
 async def mute(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_group_admin(update, context):
-        return await update.message.reply_text("❌ Sirf group admin.")
+        return
     if not update.message.reply_to_message:
         return await update.message.reply_text("⚠️ Kisi user ke message par reply karke /mute likho.")
     user_id = update.message.reply_to_message.from_user.id
@@ -63,7 +80,7 @@ async def mute(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id=update.effective_chat.id,
         user_id=user_id,
         permissions=ChatPermissions(can_send_messages=False),
-        until_date=300,  # 5 minutes
+        until_date=300,
     )
     await update.message.reply_text("🔇 User 5 minute ke liye mute ho gaya.")
 
@@ -71,7 +88,7 @@ async def mute(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != OWNER_ID:
         return
-    await update.message.reply_text("📢 Broadcast command active (future).")
+    await update.message.reply_text("📢 Broadcast feature ready (future upgrade).")
 
 # ---------- WELCOME ----------
 async def welcome(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -80,16 +97,13 @@ async def welcome(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"👋 Welcome {member.first_name}!\nRules follow karo 😊"
         )
 
-# ---------- AUTO REPLY ----------
+# ---------- AI AUTO REPLY ----------
 async def auto_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.type in ["group", "supergroup"]:
         if context.chat_data.get("bot_enabled") is False:
             return
-    text = update.message.text.lower()
-    if "hi" in text or "hello" in text:
-        await update.message.reply_text("Hello 👋")
-    elif "kaise ho" in text:
-        await update.message.reply_text("Main theek hoon 😊")
+    reply = ai_reply_logic(update.message.text)
+    await update.message.reply_text(reply)
 
 # ---------- MAIN ----------
 def main():
