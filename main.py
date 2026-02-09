@@ -1,3 +1,4 @@
+import requests
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
@@ -8,79 +9,88 @@ from telegram.ext import (
 )
 
 # ===== CONFIG =====
-BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"
+BOT_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
+OPENROUTER_API_KEY = "YOUR_OPENROUTER_API_KEY"
 
-FORBIDDEN_WORDS = [
-    "lady", "female", "girl", "telegram bot", "lady ai", "female bot"
-]
+OPENROUTER_MODEL = "openai/gpt-3.5-turbo"
+
+SYSTEM_PROMPT = """
+You are Basanti.
+
+Personality rules (VERY IMPORTANT):
+- You NEVER say you are a lady, female, girl, or telegram bot.
+- You NEVER say "AI bot" or "virtual assistant".
+- You talk like a friendly, caring human.
+- Language: simple Hindi / Hinglish.
+- Tone: warm, calm, understanding (like a good friend).
+- If someone asks gender-related questions, politely redirect.
+- Avoid repeating same sentences.
+"""
+
+FORBIDDEN = ["lady", "female", "girl", "telegram bot", "ai bot"]
+
+# ===== OPENROUTER CHAT =====
+def ai_reply(user_text):
+    payload = {
+        "model": OPENROUTER_MODEL,
+        "messages": [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_text}
+        ],
+        "temperature": 0.8
+    }
+
+    headers = {
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    res = requests.post(
+        "https://openrouter.ai/api/v1/chat/completions",
+        json=payload,
+        headers=headers,
+        timeout=20
+    )
+
+    return res.json()["choices"][0]["message"]["content"]
 
 # ===== START =====
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Hii 😊\n"
         "Main Basanti hoon 🌸\n"
-        "Aaram se baat karo — main sun rahi hoon 🤍\n\n"
-        "Bas likho, hum baat shuru karte hain 🙂"
+        "Aaram se baat karo, main sun rahi hoon 🤍"
     )
 
-# ===== HELP =====
-async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "Main normal baat-cheet ke liye yahin hoon 😊\n"
-        "Aap kuch bhi pooch sakte ho — simple, friendly baat."
-    )
-
-# ===== SMART CHAT (MY-LIKE STYLE) =====
+# ===== CHAT =====
 async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.lower()
 
-    # Safety first
-    for word in FORBIDDEN_WORDS:
+    for word in FORBIDDEN:
         if word in text:
             await update.message.reply_text(
                 "🙂 Chalo simple baat karte hain.\n"
-                "Aap kya discuss karna chahoge?"
+                "Aap kya baat share karna chahoge?"
             )
             return
 
-    # Identity (safe)
-    if "tum kon ho" in text or "tum kaun ho" in text:
-        reply = "Main Basanti hoon 😊 aapki baat samajhne ke liye yahin hoon."
-
-    # Feelings / care
-    elif "kaise ho" in text:
-        reply = "Main theek hoon 😊 aap batao, sab theek?"
-
-    elif "acha nahi lag raha" in text or "sad" in text:
-        reply = "Samajh sakti hoon 😌 thoda batao kya hua?"
-
-    # Curiosity
-    elif "kya kar" in text:
-        reply = "Abhi aap se baat kar rahi hoon 🙂 aur sun rahi hoon."
-
-    # Greetings
-    elif "hi" in text or "hello" in text or "hii" in text:
-        reply = "Hii 😊 kaise ho?"
-
-    # Thanks
-    elif "thank" in text or "thanks" in text:
-        reply = "Koi baat nahi 🤍 mujhe achha laga."
-
-    # Default (very important – natural)
-    else:
-        reply = "Samajh gayi 🙂 thoda aur batao."
-
-    await update.message.reply_text(reply)
+    try:
+        reply = ai_reply(update.message.text)
+        await update.message.reply_text(reply)
+    except Exception:
+        await update.message.reply_text(
+            "😌 Thoda sa issue aa gaya.\n"
+            "Dobara likhoge?"
+        )
 
 # ===== MAIN =====
 def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("help", help_cmd))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, chat))
 
-    print("Basanti (friendly assistant-style) running...")
+    print("Basanti (AI brain active) running...")
     app.run_polling()
 
 if __name__ == "__main__":
