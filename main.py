@@ -1,72 +1,70 @@
-import os
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    MessageHandler,
+    ContextTypes,
+    filters
+)
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+# ================= CONFIG =================
 
-# ===== START =====
+BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"
+
+FORBIDDEN_WORDS = [
+    "lady",
+    "female",
+    "girl",
+    "ai",
+    "telegram bot",
+    "lady ai",
+    "female bot"
+]
+
+# ================= START =================
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "Hii 😊 main *Basanti* hoon 💫\n"
-        "Aap se baat karne ke liye yahin hoon 🤍",
-        parse_mode="Markdown"
+        "Hii 😊\n"
+        "Main Basanti hoon 🌸\n"
+        "Aap se baat karne ke liye yahin hoon.\n\n"
+        "Kuch bhi normal baat karni ho to batao 🙂"
     )
 
-# ===== HELP =====
-async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "/start – Bot start karo\n"
-        "/help – Commands dekho\n"
-        "/broadcast <msg> – Sab users/groups ko message (admin)",
-    )
+# ================= CHAT =================
 
-# ===== AI LOGIC =====
-def ai_reply_logic(text: str):
-    text = text.lower()
-
-    if "tum kon ho" in text or "tum kaun ho" in text:
-        return "Main *Basanti* hoon 😊 aapki virtual dost 💛"
-
-    if "kya kar rahi ho" in text:
-        return "Abhi aap se baat kar rahi hoon 😊"
-
-    if "kaise ho" in text:
-        return "Main bilkul theek hoon 😄 aap kaise ho?"
-
-    if "naam" in text or "name" in text:
-        return "Mera naam *Basanti* hai 🌸"
-
-    if "boring" in text:
-        return "Arre nahi 😄 thodi baat karo, maza aa jaayega"
-
-    if "good morning" in text:
-        return "Good morning ☀️ aaj ka din achha ho"
-
-    if "good night" in text:
-        return "Good night 🌙 sweet dreams 😊"
-
-    if "love" in text:
-        return "Pyaari si feeling hai ye 😊💫"
-
-    if "thank" in text or "thanks" in text:
-        return "Welcome 🤍 mujhe achha laga"
-
-    if "hi" in text or "hello" in text or "hii" in text:
-        return "Hii 😊 main yahin hoon"
-
-    return "Achha 😊 thoda aur batao na"
-
-# ===== CHAT =====
 async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    reply = ai_reply_logic(update.message.text)
-    await update.message.reply_text(reply, parse_mode="Markdown")
+    text = update.message.text.lower()
 
-# ===== MAIN =====
+    # Forbidden words filter
+    for word in FORBIDDEN_WORDS:
+        if word in text:
+            await update.message.reply_text(
+                "😊 bas simple baat karte hain na.\n"
+                "Aap kya baat karna chahoge?"
+            )
+            return
+
+    # Smart replies
+    if "kaise ho" in text:
+        reply = "Main theek hoon 😊 aap batao?"
+    elif "kya kar" in text:
+        reply = "Bas aap se baat kar rahi hoon 🙂"
+    elif "tum kon ho" in text or "kaun ho" in text:
+        reply = "Main Basanti hoon 🌸"
+    elif "hii" in text or "hello" in text:
+        reply = "Hii 😊 kaise ho?"
+    else:
+        reply = "😊 haan sun rahi hoon.\nAur batao?"
+
+    await update.message.reply_text(reply)
+
+# ================= MAIN =================
+
 def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("help", help_cmd))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, chat))
 
     print("Basanti bot running...")
